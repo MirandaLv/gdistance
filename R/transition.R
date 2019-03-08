@@ -30,6 +30,7 @@ setMethod("transition", signature(x = "RasterLayer"), def = function(x, transiti
 
 .TfromR <- function(x, transitionFunction, directions, symm)
 {
+  # create a blank transition layer, with extent, crs similar to imput raster layer
 	tr <- new("TransitionLayer",
 		nrows=as.integer(nrow(x)),
 		ncols=as.integer(ncol(x)),
@@ -37,14 +38,32 @@ setMethod("transition", signature(x = "RasterLayer"), def = function(x, transiti
 		crs=projection(x, asText=FALSE),
 		transitionMatrix = Matrix(0,ncell(x),ncell(x)),
 		transitionCells = 1:ncell(x))
+	
+	# get the transition layer mateix
 	transitionMatr <- transitionMatrix(tr)
+	
+	# get a vector of the cell numbers which are not NA, 
+	# eg, the cells that are outside of Tanzania boundary should be excluded from the roadnet work
 	Cells <- which(!is.na(getValues(x)))
+	
+	# create a adjacent matrix, which shows the cell connection pairs 
 	adj <- adjacent(x, cells=Cells, pairs=TRUE, target=Cells, directions=directions)
+	
+	# only consider half part of the cell pairs if the matrix is symetric
 	if(symm){adj <- adj[adj[,1] < adj[,2],]}
+	
+	# get adj[,1] is the pixel number of start point
+	# get adj[,2] is the pixel number of the adjacent cell
+	# get the value from above number pairs, and create a matrix
 	dataVals <- cbind(getValues(x)[adj[,1]],getValues(x)[adj[,2]])
+	
+	# calculate the transition values between the above cell pairs
+	# 1: row-wise; 2: column-wise
 	transition.values <- apply(dataVals,1,transitionFunction)
+	
 	if(!all(transition.values>=0)){warning("transition function gives negative values")}
 	transitionMatr[adj] <- as.vector(transition.values)
+	
 	if(symm)
 	{
 		transitionMatr <- forceSymmetric(transitionMatr)

@@ -24,20 +24,32 @@ setMethod("commuteDistance", signature(x = "TransitionLayer", coords = "Coords")
 
 .rD <- function(x, coords){
 		if(class(transitionMatrix(x)) != "dsCMatrix"){stop("symmetric transition matrix required (dsCMatrix) in TransitionLayer object x")}
-		coords <- .coordsToMatrix(coords)
-
+		
+    # read coordinates
+    coords <- .coordsToMatrix(coords)
+  
+    # create a matrix with column/row's length similar to the number of input coordinates pairs
 		rd <- matrix(NA,nrow=length(coords[,1]),ncol=length(coords[,1]))
+		
+		# read row/col names
 		rownames(rd) <- rownames(coords)
 		colnames(rd) <- rownames(coords)
+		
+		# get the cell numbers of input coordinates within transition matrix x
 		allFromCells <- cellFromXY(x, coords)
 		
+		# omit coordinates that are outside of study area
 		if(!all(!is.na(allFromCells))){
 			warning("some coordinates not found and omitted")
 			allFromCells <- allFromCells[!is.na(allFromCells)]
 		}
-
-		x <- .transitionSolidify(x)		
+    
+		# ???????????
+		x <- .transitionSolidify(x)	
+		
+		# get all valid from Cells, the total amount of cells might be less than all input cells if some of the cells are outside of study area
 		fromCells <- allFromCells[allFromCells %in% transitionCells(x)]
+		
 		if (length(fromCells) < length(allFromCells)) 
 		{
 			warning(length(fromCells)," out of ",length(allFromCells)," locations were found in the fully connected transition matrix. NAs introduced.")
@@ -46,6 +58,7 @@ setMethod("commuteDistance", signature(x = "TransitionLayer", coords = "Coords")
 		fromCells <- unique(allFromCells)
 
   
+	# ??????????????????
 	Lr <- .Laplacian(x)
 	n <- max(Lr@Dim)
 	Lr <- Lr[-n,-n]
